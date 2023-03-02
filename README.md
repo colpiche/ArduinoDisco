@@ -56,5 +56,8 @@ GND: Power groundHigh PSR: -75 dBFS.
 ## Arduino pinout
 ![Arduino pinout](https://upload.wikimedia.org/wikipedia/commons/c/c9/Pinout_of_ARDUINO_Board_and_ATMega328PU.svg "Arduino pinout")
 
+## ESP32 DevKit v1 pinout
+![ESP32 DevKit v1 pinout](https://lastminuteengineers.b-cdn.net/wp-content/uploads/iot/ESP32-Pinout.png "ESP32 DevKit v1 pinout")
+
 ## Spectral analysis concept applied to audio
  - [https://www.ageofaudio.com/en/spectral-analysis-and-real-world-investigation/](https://www.ageofaudio.com/en/spectral-analysis-and-real-world-investigation/)
