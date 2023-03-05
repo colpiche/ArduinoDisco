@@ -59,5 +59,8 @@ GND: Power groundHigh PSR: -75 dBFS.
 ## ESP32 DevKit v1 pinout
 ![ESP32 DevKit v1 pinout](https://lastminuteengineers.b-cdn.net/wp-content/uploads/iot/ESP32-Pinout.png "ESP32 DevKit v1 pinout")
 
+## SD card reader pinout
+![https://alexlubbock.com/images/esp32-sd-card-wiring.jpg](https://alexlubbock.com/images/esp32-sd-card-wiring.jpg)
+
 ## Spectral analysis concept applied to audio
  - [https://www.ageofaudio.com/en/spectral-analysis-and-real-world-investigation/](https://www.ageofaudio.com/en/spectral-analysis-and-real-world-investigation/)
