@@ -165,7 +165,8 @@ void setupAudio() {
     .sample_rate = SAMPLE_RATE*2,                       // 10240 * 2 (20480) Hz
     .bits_per_sample = I2S_BITS_PER_SAMPLE_32BIT,       // could only get it to work with 32bits
     .channel_format = I2S_CHANNEL_FMT_ONLY_LEFT,        // LEFT when pin is tied to ground.
-    .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB),
+    // .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB),
+    .communication_format = i2s_comm_format_t(I2S_COMM_FORMAT_STAND_I2S),
     .intr_alloc_flags = ESP_INTR_FLAG_LEVEL1,           // Interrupt level 1
     .dma_buf_count = 8,                                 // number of buffers
     .dma_buf_len = BLOCK_SIZE                           // samples per buffer
