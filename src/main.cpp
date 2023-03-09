@@ -107,146 +107,7 @@ CRGBPalette16 greenbluePal = greenblue_gp;
 CRGBPalette16 heatPal = redyellow_gp;
 uint8_t colorTimer = 0;
 
-void setup() {
-  FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds[0], NUM_LEDS);
-  Serial.begin(115200);
 
-  setupWebServer();
-  setupAudio();
-
-  if (M_WIDTH == 8) numBands = 8;
-  else numBands = 16;
-  barWidth = M_WIDTH / numBands;
-  
-  EEPROM.begin(EEPROM_SIZE);
-  
-  // It should not normally be possible to set the gain to 255
-  // If this has happened, the EEPROM has probably never been written to
-  // (new board?) so reset the values to something sane.
-  if (EEPROM.read(EEPROM_GAIN) == 255) {
-    EEPROM.write(EEPROM_BRIGHTNESS, 50);
-    EEPROM.write(EEPROM_GAIN, 0);
-    EEPROM.write(EEPROM_SQUELCH, 0);
-    EEPROM.write(EEPROM_PATTERN, 0);
-    EEPROM.write(EEPROM_DISPLAY_TIME, 10);
-    EEPROM.commit();
-  }
-
-  // Read saved values from EEPROM
-  FastLED.setBrightness( EEPROM.read(EEPROM_BRIGHTNESS));
-  brightness = FastLED.getBrightness();
-  gain = EEPROM.read(EEPROM_GAIN);
-  squelch = EEPROM.read(EEPROM_SQUELCH);
-  pattern = EEPROM.read(EEPROM_PATTERN);
-  displayTime = EEPROM.read(EEPROM_DISPLAY_TIME);
-
-  if (WiFi.status() == WL_CONNECTED) showIP();
-}  
-
-void loop() {
-  if (pattern != 5) FastLED.clear();
-  
-  uint8_t divisor = 1;                                                    // If 8 bands, we need to divide things by 2
-  if (numBands == 8) divisor = 2;                                         // and average each pair of bands together
-  
-  for (int i = 0; i < 16; i += divisor) {
-    uint8_t fftValue;
-    
-    if (numBands == 8) fftValue = (fftResult[i] + fftResult[i+1]) / 2;    // Average every two bands if numBands = 8
-    else fftValue = fftResult[i];
-
-    fftValue = ((prevFFTValue[i/divisor] * 3) + fftValue) / 4;            // Dirty rolling average between frames to reduce flicker
-    barHeights[i/divisor] = fftValue / (255 / M_HEIGHT);                  // Scale bar height
-    
-    if (barHeights[i/divisor] > peak[i/divisor])                          // Move peak up
-      peak[i/divisor] = min(M_HEIGHT, (int)barHeights[i/divisor]);
-      
-    prevFFTValue[i/divisor] = fftValue;                                   // Save prevFFTValue for averaging later
-    
-  }
-
-  // Draw the patterns
-  for (int band = 0; band < numBands; band++) {
-    drawPatterns(band);
-  }
-
-  // Decay peak
-  EVERY_N_MILLISECONDS(60) {
-    for (uint8_t band = 0; band < numBands; band++)
-      if (peak[band] > 0) peak[band] -= 1;
-  }
-
-  EVERY_N_SECONDS(30) {
-    // Save values in EEPROM. Will only be commited if values have changed.
-    EEPROM.write(EEPROM_BRIGHTNESS, brightness);
-    EEPROM.write(EEPROM_GAIN, gain);
-    EEPROM.write(EEPROM_SQUELCH, squelch);
-    EEPROM.write(EEPROM_PATTERN, pattern);
-    EEPROM.write(EEPROM_DISPLAY_TIME, displayTime);
-    EEPROM.commit();
-  }
-  
-  EVERY_N_SECONDS_I(timingObj, displayTime) {
-    timingObj.setPeriod(displayTime);
-    if (autoChangePatterns) pattern = (pattern + 1) % 6;
-  }
-  
-  FastLED.setBrightness(brightness);
-  FastLED.show();
-
-  ws.cleanupClients();
-}
-
-void drawPatterns(uint8_t band) {
-  
-  uint8_t barHeight = barHeights[band];
-  
-  // Draw bars
-  switch (pattern) {
-    case 0:
-      rainbowBars(band, barHeight);
-      break;
-    case 1:
-      // No bars on this one
-      break;
-    case 2:
-      purpleBars(band, barHeight);
-      break;
-    case 3:
-      centerBars(band, barHeight);
-      break;
-    case 4:
-      changingBars(band, barHeight);
-      EVERY_N_MILLISECONDS(10) { colorTimer++; }
-      break;
-    case 5:
-      createWaterfall(band);
-      EVERY_N_MILLISECONDS(30) { moveWaterfall(); }
-      break;
-  }
-
-  // Draw peaks
-  switch (pattern) {
-    case 0:
-      whitePeak(band);
-      break;
-    case 1:
-      outrunPeak(band);
-      break;
-    case 2:
-      whitePeak(band);
-      break;
-    case 3:
-      // No peaks
-      break;
-    case 4:
-      // No peaks
-      break;
-    case 5:
-      // No peaks
-      break;
-  }
-}
 
 void showIP(){
   char strIP[16] = "               ";
@@ -337,4 +198,145 @@ void moveWaterfall() {
       leds(x,y+1) = leds(x,y);
     }
   }
+}
+
+void drawPatterns(uint8_t band) {
+  
+  uint8_t barHeight = barHeights[band];
+  
+  // Draw bars
+  switch (pattern) {
+    case 0:
+      rainbowBars(band, barHeight);
+      break;
+    case 1:
+      // No bars on this one
+      break;
+    case 2:
+      purpleBars(band, barHeight);
+      break;
+    case 3:
+      centerBars(band, barHeight);
+      break;
+    case 4:
+      changingBars(band, barHeight);
+      EVERY_N_MILLISECONDS(10) { colorTimer++; }
+      break;
+    case 5:
+      createWaterfall(band);
+      EVERY_N_MILLISECONDS(30) { moveWaterfall(); }
+      break;
+  }
+
+  // Draw peaks
+  switch (pattern) {
+    case 0:
+      whitePeak(band);
+      break;
+    case 1:
+      outrunPeak(band);
+      break;
+    case 2:
+      whitePeak(band);
+      break;
+    case 3:
+      // No peaks
+      break;
+    case 4:
+      // No peaks
+      break;
+    case 5:
+      // No peaks
+      break;
+  }
+}
+
+void setup() {
+  FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds[0], NUM_LEDS);
+  Serial.begin(115200);
+
+  setupWebServer();
+  setupAudio();
+
+  if (M_WIDTH == 8) numBands = 8;
+  else numBands = 16;
+  barWidth = M_WIDTH / numBands;
+  
+  EEPROM.begin(EEPROM_SIZE);
+  
+  // It should not normally be possible to set the gain to 255
+  // If this has happened, the EEPROM has probably never been written to
+  // (new board?) so reset the values to something sane.
+  if (EEPROM.read(EEPROM_GAIN) == 255) {
+    EEPROM.write(EEPROM_BRIGHTNESS, 50);
+    EEPROM.write(EEPROM_GAIN, 0);
+    EEPROM.write(EEPROM_SQUELCH, 0);
+    EEPROM.write(EEPROM_PATTERN, 0);
+    EEPROM.write(EEPROM_DISPLAY_TIME, 10);
+    EEPROM.commit();
+  }
+
+  // Read saved values from EEPROM
+  FastLED.setBrightness( EEPROM.read(EEPROM_BRIGHTNESS));
+  brightness = FastLED.getBrightness();
+  gain = EEPROM.read(EEPROM_GAIN);
+  squelch = EEPROM.read(EEPROM_SQUELCH);
+  pattern = EEPROM.read(EEPROM_PATTERN);
+  displayTime = EEPROM.read(EEPROM_DISPLAY_TIME);
+
+  if (WiFi.status() == WL_CONNECTED) showIP();
+}  
+
+void loop() {
+  if (pattern != 5) FastLED.clear();
+  
+  uint8_t divisor = 1;                                                    // If 8 bands, we need to divide things by 2
+  if (numBands == 8) divisor = 2;                                         // and average each pair of bands together
+  
+  for (int i = 0; i < 16; i += divisor) {
+    uint8_t fftValue;
+    
+    if (numBands == 8) fftValue = (fftResult[i] + fftResult[i+1]) / 2;    // Average every two bands if numBands = 8
+    else fftValue = fftResult[i];
+
+    fftValue = ((prevFFTValue[i/divisor] * 3) + fftValue) / 4;            // Dirty rolling average between frames to reduce flicker
+    barHeights[i/divisor] = fftValue / (255 / M_HEIGHT);                  // Scale bar height
+    
+    if (barHeights[i/divisor] > peak[i/divisor])                          // Move peak up
+      peak[i/divisor] = min(M_HEIGHT, (int)barHeights[i/divisor]);
+      
+    prevFFTValue[i/divisor] = fftValue;                                   // Save prevFFTValue for averaging later
+    
+  }
+
+  // Draw the patterns
+  for (int band = 0; band < numBands; band++) {
+    drawPatterns(band);
+  }
+
+  // Decay peak
+  EVERY_N_MILLISECONDS(60) {
+    for (uint8_t band = 0; band < numBands; band++)
+      if (peak[band] > 0) peak[band] -= 1;
+  }
+
+  EVERY_N_SECONDS(30) {
+    // Save values in EEPROM. Will only be commited if values have changed.
+    EEPROM.write(EEPROM_BRIGHTNESS, brightness);
+    EEPROM.write(EEPROM_GAIN, gain);
+    EEPROM.write(EEPROM_SQUELCH, squelch);
+    EEPROM.write(EEPROM_PATTERN, pattern);
+    EEPROM.write(EEPROM_DISPLAY_TIME, displayTime);
+    EEPROM.commit();
+  }
+  
+  EVERY_N_SECONDS_I(timingObj, displayTime) {
+    timingObj.setPeriod(displayTime);
+    if (autoChangePatterns) pattern = (pattern + 1) % 6;
+  }
+  
+  FastLED.setBrightness(brightness);
+  FastLED.show();
+
+  ws.cleanupClients();
 }
