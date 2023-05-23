@@ -53,18 +53,27 @@
 #include <FontMatrise.h>
 #include <EEPROM.h>
 
-#define EEPROM_SIZE 5
+#define EEPROM_SIZE 1
 #define LED_PIN     22
 #define M_WIDTH     16
 #define M_HEIGHT    16
 #define NUM_LEDS    (M_WIDTH * M_HEIGHT)
 
-#define EEPROM_BRIGHTNESS   0
-#define EEPROM_GAIN         1
-#define EEPROM_SQUELCH      2
-#define EEPROM_PATTERN      3
-#define EEPROM_DISPLAY_TIME 4
+// #define EEPROM_BRIGHTNESS   0
+// #define EEPROM_GAIN         1
+// #define EEPROM_SQUELCH      2
+#define EEPROM_PATTERN      0
+// #define EEPROM_DISPLAY_TIME 4
 
+#define POT_BRIGHTNESS  35
+#define POT_GAIN  34
+#define POT_SQUELCH  33
+#define SENSORMIN 1023
+#define SENSORMAX 0
+
+int testgain;
+int testbrightness;
+int testsquelch;
 uint8_t numBands;
 uint8_t barWidth;
 uint8_t pattern;
@@ -72,7 +81,7 @@ uint8_t brightness;
 uint16_t displayTime;
 bool autoChangePatterns = false;
 
-#include "web_server.h"
+// #include "web_server.h"
 
 cLEDMatrix<M_WIDTH, M_HEIGHT, HORIZONTAL_ZIGZAG_MATRIX> leds;
 cLEDText ScrollingMsg;
@@ -111,8 +120,8 @@ uint8_t colorTimer = 0;
 
 void showIP(){
   char strIP[16] = "               ";
-  IPAddress ip = WiFi.localIP();
-  ip.toString().toCharArray(strIP, 16);
+  // IPAddress ip = WiFi.localIP();
+  // ip.toString().toCharArray(strIP, 16);
   Serial.println(strIP);
   ScrollingMsg.SetFont(MatriseFontData);
   ScrollingMsg.Init(&leds, leds.Width(), ScrollingMsg.FontHeight() + 1, 0, 0);
@@ -255,7 +264,7 @@ void setup() {
   FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds[0], NUM_LEDS);
   Serial.begin(115200);
 
-  setupWebServer();
+  // setupWebServer();
   setupAudio();
 
   if (M_WIDTH == 8) numBands = 8;
@@ -267,27 +276,35 @@ void setup() {
   // It should not normally be possible to set the gain to 255
   // If this has happened, the EEPROM has probably never been written to
   // (new board?) so reset the values to something sane.
-  if (EEPROM.read(EEPROM_GAIN) == 255) {
-    EEPROM.write(EEPROM_BRIGHTNESS, 50);
-    EEPROM.write(EEPROM_GAIN, 0);
-    EEPROM.write(EEPROM_SQUELCH, 0);
-    EEPROM.write(EEPROM_PATTERN, 0);
-    EEPROM.write(EEPROM_DISPLAY_TIME, 10);
-    EEPROM.commit();
-  }
+  // if (EEPROM.read(EEPROM_GAIN) == 255) {
+  //   EEPROM.write(EEPROM_BRIGHTNESS, 50);
+  //   EEPROM.write(EEPROM_GAIN, 0);
+  //   EEPROM.write(EEPROM_SQUELCH, 0);
+  //   EEPROM.write(EEPROM_PATTERN, 0);
+  //   EEPROM.write(EEPROM_DISPLAY_TIME, 10);
+  //   EEPROM.commit();
+  // }
 
   // Read saved values from EEPROM
-  FastLED.setBrightness( EEPROM.read(EEPROM_BRIGHTNESS));
-  brightness = FastLED.getBrightness();
-  gain = EEPROM.read(EEPROM_GAIN);
-  squelch = EEPROM.read(EEPROM_SQUELCH);
+  // FastLED.setBrightness( EEPROM.read(EEPROM_BRIGHTNESS));
+  // brightness = FastLED.getBrightness();
+  // gain = EEPROM.read(EEPROM_GAIN);
+  // squelch = EEPROM.read(EEPROM_SQUELCH);
   pattern = EEPROM.read(EEPROM_PATTERN);
-  displayTime = EEPROM.read(EEPROM_DISPLAY_TIME);
+  // displayTime = EEPROM.read(EEPROM_DISPLAY_TIME);
 
-  if (WiFi.status() == WL_CONNECTED) showIP();
+  // if (WiFi.status() == WL_CONNECTED) showIP();
 }  
 
 void loop() {
+
+  gain = analogRead(POT_GAIN);
+  gain = map(testgain, SENSORMAX, SENSORMIN, 0, 30);
+  squelch = analogRead(POT_SQUELCH);
+  squelch = map(testsquelch, SENSORMAX, SENSORMIN, 0, 30);
+  brightness = analogRead(POT_BRIGHTNESS);
+  brightness = map(testbrightness, SENSORMAX, SENSORMIN, 0, 254);
+
   if (pattern != 5) FastLED.clear();
   
   uint8_t divisor = 1;                                                    // If 8 bands, we need to divide things by 2
@@ -322,11 +339,11 @@ void loop() {
 
   EVERY_N_SECONDS(30) {
     // Save values in EEPROM. Will only be commited if values have changed.
-    EEPROM.write(EEPROM_BRIGHTNESS, brightness);
-    EEPROM.write(EEPROM_GAIN, gain);
-    EEPROM.write(EEPROM_SQUELCH, squelch);
+    // EEPROM.write(EEPROM_BRIGHTNESS, brightness);
+    // EEPROM.write(EEPROM_GAIN, gain);
+    // EEPROM.write(EEPROM_SQUELCH, squelch);
     EEPROM.write(EEPROM_PATTERN, pattern);
-    EEPROM.write(EEPROM_DISPLAY_TIME, displayTime);
+    // EEPROM.write(EEPROM_DISPLAY_TIME, displayTime);
     EEPROM.commit();
   }
   
@@ -338,5 +355,5 @@ void loop() {
   FastLED.setBrightness(brightness);
   FastLED.show();
 
-  ws.cleanupClients();
+  // ws.cleanupClients();
 }
