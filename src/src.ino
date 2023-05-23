@@ -49,11 +49,9 @@
 #include "audio_reactive.h"
 #include <FastLED.h>
 #include <LEDMatrix.h>
-#include <LEDText.h>
-#include <FontMatrise.h>
-#include <EEPROM.h>
+// #include <EEPROM.h>
 
-#define EEPROM_SIZE 1
+// #define EEPROM_SIZE 5
 #define LED_PIN     22
 #define M_WIDTH     16
 #define M_HEIGHT    16
@@ -62,29 +60,25 @@
 // #define EEPROM_BRIGHTNESS   0
 // #define EEPROM_GAIN         1
 // #define EEPROM_SQUELCH      2
-#define EEPROM_PATTERN      0
+// #define EEPROM_PATTERN      3
 // #define EEPROM_DISPLAY_TIME 4
 
 #define POT_BRIGHTNESS  35
-#define POT_GAIN  34
-#define POT_SQUELCH  33
-#define SENSORMIN 1023
-#define SENSORMAX 0
+#define POT_SQUELCH  34
+#define POT_GAIN  33
+#define SENSORMAX 4095
+#define SENSORMIN 0
 
-int testgain;
-int testbrightness;
-int testsquelch;
 uint8_t numBands;
 uint8_t barWidth;
 uint8_t pattern;
-uint8_t brightness;
+uint8_t brightness = 50;
 uint16_t displayTime;
 bool autoChangePatterns = false;
 
 // #include "web_server.h"
 
 cLEDMatrix<M_WIDTH, M_HEIGHT, HORIZONTAL_ZIGZAG_MATRIX> leds;
-cLEDText ScrollingMsg;
 
 uint8_t peak[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 uint8_t prevFFTValue[] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
@@ -118,22 +112,22 @@ uint8_t colorTimer = 0;
 
 
 
-void showIP(){
-  char strIP[16] = "               ";
-  // IPAddress ip = WiFi.localIP();
-  // ip.toString().toCharArray(strIP, 16);
-  Serial.println(strIP);
-  ScrollingMsg.SetFont(MatriseFontData);
-  ScrollingMsg.Init(&leds, leds.Width(), ScrollingMsg.FontHeight() + 1, 0, 0);
-  ScrollingMsg.SetText((unsigned char *)strIP, sizeof(strIP) - 1);
-  ScrollingMsg.SetTextColrOptions(COLR_RGB | COLR_SINGLE, 0xff, 0xff, 0xff);
-  ScrollingMsg.SetScrollDirection(SCROLL_LEFT);
-  ScrollingMsg.SetFrameRate(160 / M_WIDTH);       // Faster for larger matrices
+// void showIP(){
+//   char strIP[16] = "               ";
+//   // IPAddress ip = WiFi.localIP();
+//   // ip.toString().toCharArray(strIP, 16);
+//   Serial.println(strIP);
+//   ScrollingMsg.SetFont(MatriseFontData);
+//   ScrollingMsg.Init(&leds, leds.Width(), ScrollingMsg.FontHeight() + 1, 0, 0);
+//   ScrollingMsg.SetText((unsigned char *)strIP, sizeof(strIP) - 1);
+//   ScrollingMsg.SetTextColrOptions(COLR_RGB | COLR_SINGLE, 0xff, 0xff, 0xff);
+//   ScrollingMsg.SetScrollDirection(SCROLL_LEFT);
+//   ScrollingMsg.SetFrameRate(160 / M_WIDTH);       // Faster for larger matrices
 
-  while(ScrollingMsg.UpdateText() == 0) {
-    FastLED.show();  
-  }
-}
+//   while(ScrollingMsg.UpdateText() == 0) {
+//     FastLED.show();  
+//   }
+// }
 
 //////////// Patterns ////////////
 
@@ -271,18 +265,18 @@ void setup() {
   else numBands = 16;
   barWidth = M_WIDTH / numBands;
   
-  EEPROM.begin(EEPROM_SIZE);
+  // EEPROM.begin(EEPROM_SIZE);
   
   // It should not normally be possible to set the gain to 255
   // If this has happened, the EEPROM has probably never been written to
   // (new board?) so reset the values to something sane.
   // if (EEPROM.read(EEPROM_GAIN) == 255) {
-  //   EEPROM.write(EEPROM_BRIGHTNESS, 50);
-  //   EEPROM.write(EEPROM_GAIN, 0);
-  //   EEPROM.write(EEPROM_SQUELCH, 0);
-  //   EEPROM.write(EEPROM_PATTERN, 0);
-  //   EEPROM.write(EEPROM_DISPLAY_TIME, 10);
-  //   EEPROM.commit();
+    // EEPROM.write(EEPROM_BRIGHTNESS, 50);
+    // EEPROM.write(EEPROM_GAIN, 0);
+    // EEPROM.write(EEPROM_SQUELCH, 0);
+    // EEPROM.write(EEPROM_PATTERN, 0);
+    // EEPROM.write(EEPROM_DISPLAY_TIME, 10);
+    // EEPROM.commit();
   // }
 
   // Read saved values from EEPROM
@@ -290,7 +284,7 @@ void setup() {
   // brightness = FastLED.getBrightness();
   // gain = EEPROM.read(EEPROM_GAIN);
   // squelch = EEPROM.read(EEPROM_SQUELCH);
-  pattern = EEPROM.read(EEPROM_PATTERN);
+  // pattern = EEPROM.read(EEPROM_PATTERN);
   // displayTime = EEPROM.read(EEPROM_DISPLAY_TIME);
 
   // if (WiFi.status() == WL_CONNECTED) showIP();
@@ -298,12 +292,9 @@ void setup() {
 
 void loop() {
 
-  gain = analogRead(POT_GAIN);
-  gain = map(testgain, SENSORMAX, SENSORMIN, 0, 30);
-  squelch = analogRead(POT_SQUELCH);
-  squelch = map(testsquelch, SENSORMAX, SENSORMIN, 0, 30);
-  brightness = analogRead(POT_BRIGHTNESS);
-  brightness = map(testbrightness, SENSORMAX, SENSORMIN, 0, 254);
+  gain = map(analogRead(POT_GAIN), SENSORMIN, SENSORMAX, 0, 30);
+  squelch = map(analogRead(POT_SQUELCH), SENSORMIN, SENSORMAX, 0, 30);
+  brightness = map(analogRead(POT_BRIGHTNESS), SENSORMIN, SENSORMAX, 0, 254);
 
   if (pattern != 5) FastLED.clear();
   
@@ -337,15 +328,15 @@ void loop() {
       if (peak[band] > 0) peak[band] -= 1;
   }
 
-  EVERY_N_SECONDS(30) {
+  // EVERY_N_SECONDS(30) {
     // Save values in EEPROM. Will only be commited if values have changed.
     // EEPROM.write(EEPROM_BRIGHTNESS, brightness);
     // EEPROM.write(EEPROM_GAIN, gain);
     // EEPROM.write(EEPROM_SQUELCH, squelch);
-    EEPROM.write(EEPROM_PATTERN, pattern);
+    // EEPROM.write(EEPROM_PATTERN, pattern);
     // EEPROM.write(EEPROM_DISPLAY_TIME, displayTime);
-    EEPROM.commit();
-  }
+    // EEPROM.commit();
+  // }
   
   EVERY_N_SECONDS_I(timingObj, displayTime) {
     timingObj.setPeriod(displayTime);
